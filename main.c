@@ -26,6 +26,8 @@
 #define RX_RING_SIZE 128
 #define TX_RING_SIZE 512
 
+#define BURST_SIZE 32
+
 #include"include/port_init.h"
 
 int main(int argc, char *argv[])
@@ -50,6 +52,26 @@ int main(int argc, char *argv[])
 		port_init(portid, mbuf_pool);
 	}
 
+	//transfer and receive packet
+	for (;;){
+		uint8_t port;
+		for (port = 0; port < nb_ports; port++){
+			struct rte_mbuf *bufs[BURST_SIZE];
+			uint16_t nb_rx = rte_eth_rx_burst(port, 0, bufs, BURST_SIZE);
+		}
+	
+		if (unlikely(nb_rx == 0)) continue;
+	
+		const uint16_t nb_tx = rte_eth_tx_burst(port ^ 1, 0, bufs, nb_rx);
+	
+		if(unlikely(nb_tx < nb_rx)){
+			uint16_t buf;
+			for (buf = nb_tx; buf < nb_rx; buf++){
+				rte_pktmbuf_free(bufs[buf]);
+			}
+		}
+	}
+	//wait slave core
 	rte_eal_mp_wait_lcore();
 	return 0;
 }
